@@ -22,25 +22,34 @@ import pytest
 from artman.tasks import python_grpc_tasks
 
 
-def test_get_subdir_path():
+def test_get_gapic_subdir_path():
     task = python_grpc_tasks.PythonMoveProtosTask()
     with mock.patch.object(os, 'walk') as walk:
         walk.return_value = (
-            ('foo', ['bar'], []),
-            ('foo/bar', ['proto'], []),
-            ('foo/bar/proto', [], ['file_pb2.py']),
+            # Ignored gapic folders.
+            ('docs', ['gapic'], []),
+            ('docs/gapic', ['v1'], []),
+            ('docs/gapic/v1', [], ['api.rst']),
+            ('tests/units/gapic/v1', [], ['test_project_client_v1.py']),
+            # Correct gapic folder.
+            ('project', ['v1'], []),
+            ('project/v1', ['gapic'], []),
+            ('project/v1/gapic', [], ['__init__.py']),
         )
-        assert task._get_subdir_path('.', 'proto') == 'foo/bar'
+        assert task._get_gapic_subdir_path('.') == 'project/v1/gapic'
 
 
-def test_get_subdir_path_not_found():
+def test__get_gapic_subdir_path_not_found():
     task = python_grpc_tasks.PythonMoveProtosTask()
     with mock.patch.object(os, 'walk') as walk:
         walk.return_value = (
-            ('foo', ['bar'], []),
+            ('tests', ['v1'], []),
+            ('tests/v1', ['gapic'], []),
+            ('tests/v1/gapic', [], ['test_project_client_v1.py']),
+            ('docs/gapic/v1', [], ['api.rst']),
         )
         with pytest.raises(RuntimeError):
-            task._get_subdir_path('.', 'proto')
+            task._get_gapic_subdir_path('.')
 
 
 def test_move_protos():
