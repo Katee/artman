@@ -64,7 +64,7 @@ def test_move_protos():
                 # for the paths we expect.
                 assert _gsp.call_count == 1
                 gapic_call = _gsp.mock_calls[0]
-                assert gapic_call[1] == ('gapic_path')
+                assert gapic_call[1] == ('gapic_path',)
 
         # Ensure that the correct commands ran.
         assert exec_command.call_count == 3
