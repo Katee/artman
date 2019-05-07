@@ -26,27 +26,18 @@ def test_get_gapic_subdir_path():
     task = python_grpc_tasks.PythonMoveProtosTask()
     with mock.patch.object(os, 'walk') as walk:
         walk.return_value = (
-            # Ignored gapic folders.
-            ('docs', ['gapic'], []),
-            ('docs/gapic', ['v1'], []),
-            ('docs/gapic/v1', [], ['api.rst']),
-            ('tests/units/gapic/v1', [], ['test_project_client_v1.py']),
-            # Correct gapic folder.
             ('project', ['v1'], []),
             ('project/v1', ['gapic'], []),
             ('project/v1/gapic', [], ['__init__.py']),
         )
-        assert task._get_gapic_subdir_path('.') == 'project/v1/gapic'
+        assert task._get_gapic_subdir_path('.') == 'project/v1'
 
 
 def test__get_gapic_subdir_path_not_found():
     task = python_grpc_tasks.PythonMoveProtosTask()
     with mock.patch.object(os, 'walk') as walk:
         walk.return_value = (
-            ('tests', ['v1'], []),
-            ('tests/v1', ['gapic'], []),
-            ('tests/v1/gapic', [], ['test_project_client_v1.py']),
-            ('docs/gapic/v1', [], ['api.rst']),
+            ('foo', ['bar'], []),
         )
         with pytest.raises(RuntimeError):
             task._get_gapic_subdir_path('.')
@@ -57,7 +48,7 @@ def test_move_protos():
     with mock.patch.object(task, 'exec_command') as exec_command:
         with mock.patch.object(task, '_get_proto_path') as _gpp:
             _gpp.side_effect = ('grpc_path/foo/bar/proto',)
-            with mock.patch.object(task, '_get_subdir_path') as _gsp:
+            with mock.patch.object(task, '_get_gapic_subdir_path') as _gsp:
                 _gsp.side_effect = (
                     'gapic_path/foo/bar/',
                 )
@@ -69,11 +60,11 @@ def test_move_protos():
                 assert _gpp.call_count == 1
                 proto_call = _gpp.mock_calls[0]
                 assert proto_call[1] == ('grpc_path',)
-                # Inspect the calls to _get_subdir_path to make sure we are looking
+                # Inspect the calls to _get_gapic_subdir_path to make sure we are looking
                 # for the paths we expect.
                 assert _gsp.call_count == 1
                 gapic_call = _gsp.mock_calls[0]
-                assert gapic_call[1] == ('gapic_path/google', 'gapic')
+                assert gapic_call[1] == ('gapic_path')
 
         # Ensure that the correct commands ran.
         assert exec_command.call_count == 3
